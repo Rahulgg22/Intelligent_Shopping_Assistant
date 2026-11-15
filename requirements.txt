@@ -1,0 +1,36 @@
+
+# API backend
+fastapi
+uvicorn[standard]
+
+# LangGraph orchestration
+langgraph
+langchain-core
+
+# Graph checkpoint persistence with SQLite
+langgraph-checkpoint-sqlite
+
+# Validation and configuration
+pydantic
+pydantic-settings
+python-dotenv
+
+# Catalog and search
+pandas
+rapidfuzz
+sentence-transformers
+faiss-cpu
+
+# Gemini-powered intent, clarification, explanations, and fallback guidance
+google-genai
+mcp
+beautifulsoup4
+
+# Database
+sqlalchemy
+aiosqlite
+
+# HTTP and testing
+httpx
+pytest
+pytest-asyncio
