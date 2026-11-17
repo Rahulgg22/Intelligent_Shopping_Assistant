@@ -21,7 +21,10 @@ rapidfuzz
 sentence-transformers
 faiss-cpu
 
-# Gemini-powered intent, clarification, explanations, and fallback guidance
+# Centralized OpenRouter LLM gateway (OpenAI-compatible client)
+openai>=1.50.0
+
+# Optional legacy GenAI provider
 google-genai
 mcp
 beautifulsoup4

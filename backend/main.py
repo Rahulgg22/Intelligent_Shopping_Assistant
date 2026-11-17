@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import logging
 
 from fastapi import FastAPI
@@ -7,10 +8,22 @@ from backend.api.routes.chat import router as chat_router
 from backend.api.routes.products import router as products_router
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Preload reranker singleton at startup so subsequent requests have zero init latency
+    try:
+        from backend.agents.ranking import get_cross_encoder
+        get_cross_encoder()
+    except Exception as exc:
+        logging.getLogger("startup").warning("CrossEncoder warmup skipped: %s", exc)
+    yield
+
+
 app = FastAPI(
     title="PS-12 Conversational Shopping Assistant",
     description="LangGraph-powered multi-agent product discovery system",
     version="1.0.0",
+    lifespan=lifespan,
 )
 logging.basicConfig(level=logging.INFO)
 app.add_middleware(
@@ -31,5 +44,5 @@ def root():
 
 @app.get("/health")
 def health():
-    from backend.services.ai import gemini_state
-    return {"status": "healthy", "gemini": gemini_state}
+    from backend.services.ai import gemini_state, llm_state
+    return {"status": "healthy", "llm": llm_state, "gemini": gemini_state}

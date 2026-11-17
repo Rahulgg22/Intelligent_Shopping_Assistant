@@ -21,7 +21,7 @@ class ProductOut(BaseModel):
     use_cases: list[str] = []
     tags: list[str] = []
     rating: float | None = None
-    in_stock: bool = True
+    in_stock: bool | None = True
     fit_score: float | None = None
     explanation: str | None = None
     tradeoffs: list[str] = []
@@ -42,6 +42,18 @@ class ProductOut(BaseModel):
     color: str = ""
     warranty_months: int | None = None
     specifications: str = ""
+    rank: int | None = None
+    matched_requirements: list[str] = []
+    benefits: list[str] = []
+    limitations: list[str] = []
+    comparison_note: str | None = None
+    retrieval_reason: str | None = None
+    ranking_reason: str | None = None
+    requirement_matches: list[dict[str, Any]] = []
+    strengths: list[str] = []
+    matched_attributes: list[str] = []
+    unverified_attributes: list[str] = []
+    explanation_details: dict[str, Any] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -53,4 +65,6 @@ class ChatResponse(BaseModel):
     active_constraints: dict[str, Any] = {}
     provider_status: dict[str, str] = {}
     retrieval_errors: dict[str, str] = {}
+    search_status: str = "success"
+    fallback_suggestions: list[str] = []
     metadata: dict[str, Any] = {}

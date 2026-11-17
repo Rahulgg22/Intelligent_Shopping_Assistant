@@ -6,10 +6,17 @@ class Settings(BaseSettings):
 
     top_k: int = 5
 
-    google_api_key: str = ""
+    # OpenRouter LLM Configuration
+    openrouter_api_key: str = ""
+    openrouter_model: str = "google/gemini-2.5-flash"
+    openrouter_fallback_models: str = "deepseek/deepseek-chat,openai/gpt-4o-mini"
+    openrouter_endpoint: str = "https://openrouter.ai/api/v1"
+    openrouter_timeout_seconds: float = 15.0
 
-    gemini_model: str = "gemini-3.8-flash"
-    gemini_fallback_model: str = "gemini-3.6-flash"
+    # Legacy Gemini configuration (fallback compatibility)
+    google_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+    gemini_fallback_model: str = "gemini-2.0-flash"
     gemini_timeout_seconds: float = 10.0
 
     # Tavily Web Search

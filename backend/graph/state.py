@@ -9,6 +9,8 @@ class ShoppingState(TypedDict, total=False):
 
     normalized_query: str
 
+    effective_query: str
+
     turn: int
 
     constraints: dict[str, Any]
@@ -17,7 +19,13 @@ class ShoppingState(TypedDict, total=False):
 
     needs_clarification: bool
 
+    clarification_decision: str
+
     clarifying_question: str | None
+
+    pending_clarification: str | None
+
+    pending_clarification_question: str | None
 
     mapped_filters: dict[str, Any]
 
@@ -44,3 +52,28 @@ class ShoppingState(TypedDict, total=False):
     provider_status: dict[str, str]
 
     retrieval_errors: dict[str, str]
+
+    search_status: str
+
+    fallback_reason: str | None
+
+    fallback_suggestions: list[str]
+
+    rejection_reasons: dict[str, Any]
+
+    # Tool and multi-turn MCP execution state
+    previous_products: list[dict]
+
+    tool_intent: str | None
+
+    tool_target: str | None
+
+    alternative_type: str | None
+
+    selected_tool: str | None
+
+    comparison_result: dict[str, Any] | None
+
+    review_result: dict[str, Any] | None
+
+    alternatives_result: dict[str, Any] | None

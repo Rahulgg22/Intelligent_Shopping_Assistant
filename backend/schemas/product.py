@@ -50,6 +50,24 @@ def _number_value(value: Any) -> Any:
     return value
 
 
+class RequirementMatch(BaseModel):
+    requirement: str
+    status: Literal["matched", "not_matched", "unknown"]
+    evidence: str
+
+
+class ProductExplanation(BaseModel):
+    product_id: str
+    rank: int | None = None
+    retrieval_reason: str = ""
+    requirement_matches: list[RequirementMatch] = Field(default_factory=list)
+    ranking_reason: str = ""
+    strengths: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    matched_attributes: list[str] = Field(default_factory=list)
+    unverified_attributes: list[str] = Field(default_factory=list)
+
+
 class Product(BaseModel):
     """Provider-neutral product representation used by retrieval and APIs."""
 
@@ -88,6 +106,18 @@ class Product(BaseModel):
     color: str = ""
     warranty_months: int | None = Field(default=None, ge=0)
     specifications: str = ""
+    rank: int | None = None
+    matched_requirements: list[str] = Field(default_factory=list)
+    benefits: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    comparison_note: str | None = None
+    retrieval_reason: str | None = None
+    ranking_reason: str | None = None
+    requirement_matches: list[dict[str, Any]] = Field(default_factory=list)
+    strengths: list[str] = Field(default_factory=list)
+    matched_attributes: list[str] = Field(default_factory=list)
+    unverified_attributes: list[str] = Field(default_factory=list)
+    explanation_details: dict[str, Any] | None = None
 
     @field_validator("features", "use_cases", "tags", mode="before")
     @classmethod

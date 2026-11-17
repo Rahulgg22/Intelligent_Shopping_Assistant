@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
-  Bookmark, Bot, ChevronDown, CircleHelp, GitCompareArrows, Heart,
+  Bookmark, Bot, Check, ChevronDown, ChevronUp, CircleHelp, GitCompareArrows, Heart,
   History, LayoutGrid, Menu, Plus, Search, Send, Settings, ShieldCheck,
   SlidersHorizontal, Sparkles, Star, Tag, X
 } from 'lucide-react'
@@ -54,21 +54,106 @@ function money(value) {
 }
 
 function ProductCard({ product, saved, selected, onSave, onCompare }) {
+  const [expanded, setExpanded] = useState(false)
   const image = product.image_url
-  return <article className="product-card">
+  const isTop = product.rank === 1
+  const reqMatches = product.requirement_matches || []
+  const retrievalText = product.retrieval_reason || product.explanation || product.description || 'Matches your search requirements.'
+  const rankingText = product.ranking_reason || product.comparison_note
+
+  return <article className={`product-card ${isTop ? 'top-match' : ''}`}>
     <div className="product-image">
       {image ? <img src={image} alt={product.name} /> : <div className="image-placeholder"><LayoutGrid size={24} /></div>}
       <button className={`save-product ${saved ? 'is-saved' : ''}`} onClick={() => onSave(product)} aria-label={saved ? 'Remove saved product' : 'Save product'}><Heart size={16} fill={saved ? 'currentColor' : 'none'} /></button>
       {product.discount_percent > 0 && <span className="discount"><Tag size={12} /> {product.discount_percent}% off</span>}
+      {product.rank && <span className={`rank-badge ${isTop ? 'top-rank-badge' : ''}`}>#{product.rank} {isTop ? '• Best Match' : ''}</span>}
     </div>
     <div className="product-copy">
       <div className="product-meta"><span>{product.source_name || 'External source'}</span><span>{product.subcategory || product.category}</span></div>
       <h3>{product.name}</h3>
       {product.brand && <p className="brand-line">{product.brand}</p>}
-          <div className="product-rating">{product.rating > 0 ? <><Star size={14} fill="currentColor" /> {product.rating} <span>({product.review_count || 0})</span></> : <span>Rating unavailable</span>}</div>
-          <div className="product-price"><strong>{money(product.price)}</strong>{product.original_price && <del>{money(product.original_price)}</del>}</div><div className="verification-label">{product.price_verified ? 'Price verified' : 'Price not verified'} · {product.availability === 'in_stock' ? 'In stock' : 'Stock unknown'}</div>
-      <p className="match-line">{product.explanation || product.description || 'Product details available from the source.'}</p>
-      <div className="card-actions"><label className="compare-check"><input type="checkbox" checked={selected} onChange={() => onCompare(product)} /> Compare</label>{product.product_url ? <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="view-link">View product</a> : <span className="unverified">Source link unavailable</span>}</div>
+      <div className="product-rating">{product.rating > 0 ? <><Star size={14} fill="currentColor" /> {product.rating} <span>({product.review_count || 0})</span></> : <span>Rating unavailable</span>}</div>
+      <div className="product-price"><strong>{money(product.price)}</strong>{product.original_price && <del>{money(product.original_price)}</del>}</div>
+      <div className="verification-label">{product.price_verified ? '✓ Price verified' : 'Price not verified'} · {product.availability === 'in_stock' ? 'In stock' : 'Stock unknown'}</div>
+
+      {/* Requirement match indicators */}
+      {reqMatches.length > 0 ? (
+        <div className="req-indicators-wrap">
+          {reqMatches.slice(0, 4).map((rm, idx) => (
+            <span key={idx} className={`req-pill ${rm.status}`}>
+              {rm.status === 'matched' ? <Check size={10} /> : rm.status === 'not_matched' ? <X size={10} /> : <CircleHelp size={10} />}
+              {rm.requirement} — {rm.status === 'matched' ? 'Matched' : rm.status === 'not_matched' ? 'Exceeds budget' : 'Not verified'}
+            </span>
+          ))}
+        </div>
+      ) : product.matched_requirements?.length > 0 && (
+        <div className="matched-reqs-wrap">
+          {product.matched_requirements.slice(0, 3).map((req, rIdx) => (
+            <span key={rIdx} className="matched-req-tag"><Sparkles size={9} /> {req}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Recommendation explanation: Why this recommendation? */}
+      <div className="why-matches-box">
+        <span className="why-kicker">Why this recommendation?</span>
+        <p className="match-line retrieval-line">{retrievalText}</p>
+        {rankingText && <p className="match-line ranking-line">{rankingText}</p>}
+      </div>
+
+      {/* Expandable details */}
+      <button className="view-details-toggle" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>
+        <span>{expanded ? 'Hide ranking details' : 'View ranking details'}</span>
+        {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+      </button>
+
+      {expanded && (
+        <div className="expanded-ranking-details">
+          <div className="detail-block">
+            <strong>Why this product was retrieved</strong>
+            <p>{retrievalText}</p>
+          </div>
+          {rankingText && (
+            <div className="detail-block">
+              <strong>Why ranked at position #{product.rank || 1}</strong>
+              <p>{rankingText}</p>
+            </div>
+          )}
+          {reqMatches.length > 0 && (
+            <div className="detail-block">
+              <strong>Requirement-by-requirement verification</strong>
+              <ul className="req-detail-list">
+                {reqMatches.map((rm, mIdx) => (
+                  <li key={mIdx} className={`req-detail-item ${rm.status}`}>
+                    <span className="req-status-dot" />
+                    <div>
+                      <b>{rm.requirement}:</b> {rm.evidence || (rm.status === 'matched' ? 'Verified in listing' : rm.status === 'not_matched' ? 'Not satisfied' : 'Not verified in listing')}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {product.strengths?.length > 0 && (
+            <div className="detail-block">
+              <strong>Verified strengths</strong>
+              <ul className="evidence-bullets">
+                {product.strengths.map((s, sIdx) => <li key={sIdx}>✓ {s}</li>)}
+              </ul>
+            </div>
+          )}
+          {product.limitations?.length > 0 && (
+            <div className="detail-block">
+              <strong>Limitations & unverified information</strong>
+              <ul className="evidence-bullets limitations">
+                {product.limitations.map((l, lIdx) => <li key={lIdx}>⚠ {l}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="card-actions"><label className="compare-check"><input type="checkbox" checked={selected} onChange={() => onCompare(product)} /> Compare</label>{product.product_url ? <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="view-link">View product ↗</a> : <span className="unverified">Source link unavailable</span>}</div>
     </div>
   </article>
 }
@@ -145,7 +230,16 @@ function App() {
       if (!response.ok) throw new Error(`Assistant request failed (${response.status})`)
       const data = await response.json()
       setProviderStatus(data.provider_status || {}); setProviderErrors(data.retrieval_errors || {})
-      setMessages((items) => [...items, { role: 'assistant', text: data.message, products: data.products || [], action: data.action, constraints: data.active_constraints || {}, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }])
+      setMessages((items) => [...items, {
+        role: 'assistant',
+        text: data.message,
+        products: data.products || [],
+        action: data.action,
+        constraints: data.active_constraints || {},
+        search_status: data.search_status || 'success',
+        fallback_suggestions: data.fallback_suggestions || [],
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }])
     } catch (requestError) { setMessages((items) => [...items, { role: 'assistant', text: requestError.message, error: true }]); setError(requestError.message) } finally { setLoading(false) }
   }
 
@@ -164,7 +258,7 @@ function App() {
     <main className="workspace">
       <header className="topbar"><button className="mobile-only icon-button" onClick={() => setMobileFilters(!mobileFilters)} aria-label="Toggle filters"><Menu size={19} /></button><div><p className="kicker">ShopSmart AI / {view === 'chat' ? 'New discovery' : view}</p><h1>{view === 'chat' ? 'Your AI shopping assistant' : view === 'saved' ? 'Saved items' : view === 'compare' ? 'Compare products' : 'Your searches'}</h1></div><div className="top-status"><ShieldCheck size={16} /> Private by default</div></header>
       {view === 'searches' && <section className="searches-view"><div className="results-header"><div><p className="kicker">Conversation archive</p><h2>Your searches</h2></div><button className="compare-button" onClick={startNewChat}><Plus size={16} /> New chat</button></div><div className="search-list">{chatSessions.filter((chat) => chat.messages.length > 0).map((chat) => <button key={chat.id} onClick={() => openChat(chat)}><History size={16} /><span><b>{chat.title}</b><small>{chat.messages.length} messages · {new Date(chat.updatedAt).toLocaleString()}</small></span><ChevronDown size={15} /></button>)}</div></section>}
-      {view === 'chat' && <section className="conversation"><div className="conversation-scroll">{messages.length === 0 && <div className="empty-state"><div className="empty-icon"><Sparkles size={25} /></div><h2>Find the right product, faster.</h2><p>Tell me what you need, your budget, and what matters most. I’ll search available sources and compare your options.</p><div className="suggestions">{suggestions.map((item) => <button key={item} onClick={() => sendMessage(null, item)}>{item}<span>↗</span></button>)}</div></div>}{messages.map((message, index) => <div className={`message-row ${message.role}`} key={`${index}-${message.text}`}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={14} /> : 'You'}</div><div className="message-body"><div className={`message-bubble ${message.error ? 'error' : ''}`}>{message.text}</div><small>{message.time}</small>{message.products?.length > 0 && <div className="recommendation-grid">{message.products.map((product) => <ProductCard key={product.product_id} product={product} saved={saved.some((item) => item.product_id === product.product_id)} selected={selected.some((item) => item.product_id === product.product_id)} onSave={saveProduct} onCompare={compareProduct} />)}</div>}{message.action === 'clarification' && <div className="follow-up"><button onClick={() => setQuery('Show me options under ₹5,000')}>Set a budget</button><button onClick={() => setQuery('Show me different brands')}>Different brands</button></div>}</div></div>)}{loading && <div className="search-progress"><Sparkles size={15} /> Understanding your requirements <span>Searching configured sources</span><i /></div>}<div ref={bottomRef} /></div><form className="message-form" onSubmit={sendMessage}><div className="input-wrap"><Sparkles size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Describe what you’re looking for..." aria-label="Shopping request" /><span>Enter ↵</span></div><button disabled={loading || !query.trim()} aria-label="Send message"><Send size={17} /></button></form></section>}
+      {view === 'chat' && <section className="conversation"><div className="conversation-scroll">{messages.length === 0 && <div className="empty-state"><div className="empty-icon"><Sparkles size={25} /></div><h2>Find the right product, faster.</h2><p>Tell me what you need, your budget, and what matters most. I’ll search available sources and compare your options.</p><div className="suggestions">{suggestions.map((item) => <button key={item} onClick={() => sendMessage(null, item)}>{item}<span>↗</span></button>)}</div></div>}{messages.map((message, index) => <div className={`message-row ${message.role}`} key={`${index}-${message.text}`}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={14} /> : 'You'}</div><div className="message-body"><div className={`message-bubble ${message.error ? 'error' : ''}`}>{message.text}</div><small>{message.time}</small>{message.products?.length > 0 && <div className="recommendations-container"><div className="results-overview-banner"><Sparkles size={13} /><span>These products were retrieved based on your requested category, budget, and features. They are ordered according to their relevance and verified requirement matches.</span></div><div className="recommendation-grid">{message.products.map((product) => <ProductCard key={product.product_id} product={product} saved={saved.some((item) => item.product_id === product.product_id)} selected={selected.some((item) => item.product_id === product.product_id)} onSave={saveProduct} onCompare={compareProduct} />)}</div></div>}{message.action === 'clarification' && <div className="follow-up"><button onClick={() => setQuery('Show me options under ₹5,000')}>Set a budget</button><button onClick={() => setQuery('Show me different brands')}>Different brands</button></div>}{message.fallback_suggestions?.length > 0 && <div className="fallback-suggestions">{message.fallback_suggestions.map((suggestion, sIdx) => <button key={sIdx} onClick={() => sendMessage(null, suggestion)}>{suggestion} ↗</button>)}</div>}</div></div>)}{loading && <div className="search-progress"><Sparkles size={15} /> Understanding your requirements <span>Searching configured sources</span><i /></div>}<div ref={bottomRef} /></div><form className="message-form" onSubmit={sendMessage}><div className="input-wrap"><Sparkles size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Describe what you’re looking for..." aria-label="Shopping request" /><span>Enter ↵</span></div><button disabled={loading || !query.trim()} aria-label="Send message"><Send size={17} /></button></form></section>}
           {failedProviders.length > 0 && <div className="provider-warning">Some sources were unavailable: {failedProviders.join(', ')}. Results shown are partial.</div>}{unverifiedProviders.length > 0 && <div className="provider-warning">Some {unverifiedProviders.join(', ')} pages were found, but their prices could not be verified for your budget.</div>}
     </main>
   </div>

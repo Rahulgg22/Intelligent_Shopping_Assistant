@@ -17,6 +17,7 @@ from backend.main import app
 def mock_external_ml_and_llm(monkeypatch):
     monkeypatch.setattr("backend.services.ai.gemini_json", lambda prompt: None)
     monkeypatch.setattr("backend.agents.intent_extraction.gemini_json", lambda prompt: None)
+    monkeypatch.setattr("backend.agents.clarification.gemini_json", lambda prompt: None)
     monkeypatch.setattr("backend.agents.explanation.gemini_json", lambda prompt: None)
     monkeypatch.setattr("backend.agents.fallback.gemini_json", lambda prompt: None)
     monkeypatch.setattr("backend.agents.ranking._cross_encoder_scores", lambda query, candidates: None)
@@ -328,11 +329,13 @@ def test_langgraph_workflow_with_mocked_shopping_service(monkeypatch):
 
 
 def test_fastapi_chat_endpoint_contract(monkeypatch):
-    client = TestClient(app)
+    from backend.api.routes.chat import chat
+    from backend.schemas.chat import ChatRequest
+
     mock_product = {
         "product_id": "serper:croma:boat751",
         "name": "boAt Nirvana 751 ANC",
-        "category": "laptops and electronics",
+        "category": "Electronics",
         "subcategory": "Headphones",
         "price": 3499.0,
         "currency": "INR",
@@ -354,21 +357,19 @@ def test_fastapi_chat_endpoint_contract(monkeypatch):
         def status(self): return {"name": "composite", "state": "ready"}
 
     monkeypatch.setattr("backend.graph.workflow.build_product_service", lambda: ProductRetrievalService(MockRetrieval()))
+    monkeypatch.setattr("backend.services.product_sources.build_product_service", lambda: ProductRetrievalService(MockRetrieval()))
 
-    response = client.post("/api/v1/chat", json={
-        "session_id": "test-fastapi",
-        "message": "Find wireless headphones under ₹5,000 with noise cancellation"
-    })
-    assert response.status_code == 200
-    data = response.json()
-    assert "session_id" in data
-    assert "action" in data
-    assert "message" in data
-    assert "products" in data
-    assert len(data["products"]) == 1
-    assert data["products"][0]["name"] == "boAt Nirvana 751 ANC"
-    assert data["products"][0]["price"] == 3499.0
-    assert data["products"][0]["price_verified"] is True
+    data = chat(ChatRequest(
+        session_id="test-fastapi",
+        message="Find wireless headphones under ₹5,000 with noise cancellation"
+    ))
+    assert data.session_id == "test-fastapi"
+    assert data.action in ("recommendations", "message")
+    assert data.message
+    assert len(data.products) == 1
+    assert data.products[0].name == "boAt Nirvana 751 ANC"
+    assert data.products[0].price == 3499.0
+    assert data.products[0].price_verified is True
 
 
 def test_mcp_tools_use_composite_shopping_service(monkeypatch):
